@@ -19,7 +19,7 @@ class WindowBuilder:
             window.root.attributes("-type", "splash")
             #window.root.attributes("-type", "toolbar")
 
-        window.root.bind_all("<KeyPress>", window.key_pressed)
+        #window.root.bind_all("<KeyPress>", window.key_pressed)
         window.root.bind_all("<Escape>", lambda event: window.terminate_entire_program(event))
         window.root.bind_all("<Control-z>", window.undo_previous_shape)
         

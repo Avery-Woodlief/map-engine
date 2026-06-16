@@ -1,4 +1,4 @@
-from window_builder import WindowBuilder
+from window_builder import *
 from basic_geometry import *
 import re
 import platform
@@ -56,7 +56,13 @@ class DrawingBoard:
                           }
                 
              }
-        self.shape_counter = {"rectangle":0, "oval":0, "circle":0, "high-def oval":0}
+        self.shape_counter = {
+                                "rectangle":0, 
+                                "oval":0, 
+                                "circle":0, 
+                                "high-def oval":0
+                             }
+
         self.current_shape_type = "oval"#"rectangle"
         self.shapes = []
         self.system = platform.system()
@@ -71,7 +77,7 @@ class DrawingBoard:
         self.export_failed = False
 
         WindowBuilder(self)
-        
+
         self.bind_commands(self.canvas, {"<Motion>":self.start_dragging_button1,
                                          "<ButtonPress-1>":self.start_dragging_button1,
                                          "<ButtonRelease-1>":self.end_dragging_button1,
@@ -240,9 +246,6 @@ class DrawingBoard:
         self.root.focus_force()
         self.canvas.focus_set()
 
-    def key_pressed(self, event):
-        #print("KEY:", event.keysym, event.char, event.state)
-        return
 
     def zoom_out(self):
         self.zoom_bool = not self.zoom_bool
@@ -312,6 +315,7 @@ class DrawingBoard:
     
 
     def end_dragging_button1(self, event):
+
         if event.state & state_masks["button1"]:
             self.canvas.delete("overlay")
             mouse_pos = (event.x, event.y)
@@ -328,7 +332,7 @@ class DrawingBoard:
                 self.shapes.append(Rect(**(self.shape_args["rectangle"] | self.shape_args["style"])))
                 self.shapes[-1].export_color = self.shape_args["export"]["color"]
                 self.shapes[-1].export_outline = self.shape_args["export"]["outline"]
-            
+
             #XXX CIRCLE
             elif (self.current_shape_type == "circle"):
                 self.shape_counter["circle"] += 1
@@ -383,7 +387,7 @@ class DrawingBoard:
             #XXX RECTANGLE OVERLAY
             if (self.current_shape_type == "rectangle"):
                 self.canvas.create_rectangle(self.shape_args["rectangle"]["topleft"] + mouse_pos,fill=self.shape_args["style"]["color"], outline=self.shape_args["style"]["outline"], tags=("overlay",))
-                
+
             #XXX OVAL OVERLAY
             elif (self.current_shape_type == "oval"):
                 self.canvas.create_oval(self.shape_args["oval"]["center"] + mouse_pos,fill=self.shape_args["style"]["color"], outline=self.shape_args["style"]["outline"], tags=("overlay",))
@@ -408,7 +412,7 @@ class DrawingBoard:
                                                  fill=self.shape_args["style"]["color"], outline=self.shape_args["style"]["outline"],
                                                  tags=("overlay",))
                 
-        
+
     def bind_commands(self, widget, kw):
         for event, command in kw.items():
             widget.bind(event, command)
