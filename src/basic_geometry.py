@@ -1,130 +1,125 @@
 import math
+import re
+
+
+RECTANGLE_TYPE      = 0x00001
+CIRCLE_TYPE         = 0x00002
+OVAL_TYPE           = 0x00004
+HIGHDEF_CIRCLE_TYPE = 0x00008
+LINE_TYPE           = 0x00016
+POINT_TYPE          = 0x00032
+TRIANGLE_TYPE       = 0x00064
+RHOMBUS_TYPE        = 0x00128
+
+type_map = {
+                "rectangle" : RECTANGLE_TYPE,
+                "circle" : CIRCLE_TYPE,
+                "oval" : OVAL_TYPE,
+                "highdef circle" : HIGHDEF_CIRCLE_TYPE,
+                "line" : LINE_TYPE,
+                "point" : POINT_TYPE,
+                "triangle" : TRIANGLE_TYPE,
+                "rhombus" : RHOMBUS_TYPE
+            }
 
 
 nint = lambda x: (math.floor(x + 0.5) + math.ceil((2*x - 1)/4) - math.floor((2*x - 1)/4) - 1) # nearest integer function
 
+
 class Shape:
-    def __init__(self, topleft=None, width=None, height=None, center=None, radius=None, filled=None, end=None, color=None, outline=None):
-        if (not topleft and not center):
-            raise ValueError("not speficied shape")
-        if ((topleft and width and height) or (topleft and end)):
-            self.type = "rectangle"
-            if (width and height and not end):
-                self.width = self.w = width
-                self.height = self.h = height
-                self.end = (topleft[0] + self.width, topleft[1] + self.height)
-            elif ((not (width and height)) and end):
-                self.width = self.w = end[0]-topleft[0]
-                self.height = self.h = end[1]-topleft[1]
-            self.topleft = topleft
-            self.x = self.topleft[0]
-            self.y = self.topleft[1]
-        if ((center and radius) or (center and end)):
-            
-            if (radius):
-                cx, cy = center
-                left   = cx - radius
-                top    = cy - radius
-                self.radius = radius
-                if (not end):
-                    self.end = (center[0] + self.radius, center[1] + self.radius)
-                    self.width = self.end[0]-left
-                    self.height = self.end[1]-top
-            else:
-                self.radius = nint(math.dist(center, end))
-                cx, cy = center
-                left   = cx - radius
-                top    = cy - radius
-                self.end = end
-                self.width = self.end[0]-left
-                self.height = self.end[1]-top
-                if (self.width == self.height):
-                    self.is_circle = True
-                    self.type = "circle"
-                else:
-                    self.is_circle = False
-                    self.type = "oval"
-            self.center = center
-        self.filled = filled
-        self.color = color
-        self.outline = outline
-        self.export_color = "(229, 229, 229, 255)"
-        self.export_outline = "(127, 127, 127, 255)"
-    def __str__(self):
-        pass
-        
-        
 
-class Rect(Shape):
-    def __init__(self, **kw):
-        super().__init__(**kw)
-    def __str__(self):
-        return f"{self.x}, {self.y}, {self.w}, {self.h} : {self.color}"
+    geom_keys = ()
+    style_keys = ("color", "outline", "filled", "transparency")
 
-    def get_dims(self):
-        return f"{self.x}, {self.y}, {self.w}, {self.h}"
-    def get_color(self):
-        return f"{self.color}"
+    def __init__(self, kw):
+        for key in (list(self.geom_keys) + list(self.style_keys)):
+            setattr(self, key, kw[key])
 
-class Oval(Shape):
-    def __init__(self, **kw):
-        super().__init__(**kw)
-    def __str__(self):
-        if (self.is_circle):
-            return f"{self.center[0]}, {self.center[1]}, {self.radius} : {self.color}"
-        else:
-            return f"{self.center[0]-self.width}, {self.center[1]-self.height}, {self.end[0]}, {self.end[1]}"
+        self.geom_attributes = list(type(self).geom_keys)
+        self.style_attributes = list(type(self).style_keys)
+        self.type = type(self).__name__.lower()
 
-    def get_dims(self):
-        if (not self.is_circle):
-            return f"{self.center[0]-self.width}, {self.center[1]-self.height}, {self.end[0]}, {self.end[1]}"
-        else:
-            return f"{self.center[0]}, {self.center[1]}, {self.radius}"
-    def get_color(self):
-        return f"{self.color}"
-
-class HighDefOval:
-    def __init__(self, center = None, end = None, radius = None, filled = None, color = None, outline = None, w = 20, h = 20):
-        if (not center and not end):
-            raise ValueError("no center and no end for HighDefOval class")        
-        self.center = center
-        self.radius = nint(math.dist(center, end))
-        self.color = color
-        self.filled = filled
-        self.outline = outline
-        self.rects = []
-        self.type = "high-def oval"
-        self.w = w
-        self.h = h
-        try:
-            self.draw_circle_using_rects()
-        except(ZeroDivisionError):
-            pass
-
-    def draw_circle_using_rects(self):
-        cx, cy = self.center
-
-        w = self.w
-        h = self.h
-        radius = self.radius
-        increment = math.floor((360)/(2*math.pi*radius/w))
-        
-
-        for d in range(0, 360, increment):
-            angle = math.radians(d)
-
-            x = nint(cx + radius * math.cos(angle))
-            y = nint(cy + radius * math.sin(angle))
-
-            args = {"topleft":(x, y),"width":w, "height":h, "color":self.color, "filled":self.filled, "outline":self.outline}
-
-            new_rect = Rect(**args)
-            self.rects.append(new_rect)
-
-    def __str__(self):
-        if (len(self.rects) == 0):
-            return ""
-        string = f"{self.rects[0]}"
-        for i in range(1, len(self.rects)):
-            string += f"\n{self.rects[i]}"
+    def get_a_string(self, keys_):
+        string = f"{getattr(self, keys_[0])}"
+        for i in range(1, len(keys_)):
+            string += f", {getattr(self, keys_[i])}"
         return string
+
+    def __str__(self):
+        key_string = self.get_a_string(self.geom_attributes)
+        value_string = self.get_a_string(self.style_attributes)
+        string = key_string + " : " + value_string
+        return string
+
+class Rectangle (Shape):
+    geom_keys = ("topleft", "end")
+    
+    def __init__(self, kw):
+        super().__init__(kw)
+        self.geom_attributes += ["width", "height"]
+        self.width = abs(self.topleft[0] - self.end[0])
+        self.height = abs(self.topleft[1] - self.end[1])
+
+class Circle (Shape):
+    geom_keys = ("center", "end")
+
+    def __init__(self, kw):
+        super().__init__(kw)
+        self.geom_attributes += ["radius"]
+        self.radius = nint(math.dist(self.center, self.end))
+
+class Oval (Shape):
+    geom_keys = ("center", "end")
+    def __init__(self, kw):
+        super().__init__(kw)
+        self.geom_attributes += ["radius", "width", "height"] # width, height for boundbox if drawing with pygame
+        self.radius = nint(math.dist(self.center, self.end))
+        self.width = self.end[0] - (self.center[0] - self.radius)
+        self.height = self.end[1] - (self.center[1] - self.radius)
+
+class Line (Shape):
+    geom_keys = ("topleft", "end")
+    def __init__(self, kw):
+        super().__init__(kw)
+
+class Point (Shape):
+    geom_keys = ("end")
+    def __init__(self, kw):
+        super().__init__(kw)
+
+class Triangle (Shape):
+    geom_keys = ("center", "width", "height")
+    
+class ShapeFactory:
+    shapes_map = {
+                    RECTANGLE_TYPE : Rectangle,
+                    CIRCLE_TYPE : Circle,
+                    OVAL_TYPE : Oval
+                 }
+    @staticmethod
+    def create(kw, specification):
+        for flag, shape_class_ in ShapeFactory.shapes_map.items():
+            if specification & flag:
+                output_shape = shape_class_(kw)
+                return output_shape
+
+        raise ValueError("No shape type specification given")
+
+"""
+USAGE
+args = {
+            "topleft":(0, 0),
+            "width": 20,
+            "height": 30,
+            "center":(2, 10),
+            "end":(30, 20),
+            "color": "black",
+            "outline":"blue",
+            "filled":False,
+            "transparency":.5
+       }
+
+shape = ShapeFactory.create(args, RECTANGLE_TYPE)
+print(shape.type)
+print(shape)
+"""

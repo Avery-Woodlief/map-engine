@@ -81,7 +81,7 @@ class WindowBuilder:
         window.shape_selection.insert("end", "rectangle")
         window.shape_selection.insert("end", "oval")
         window.shape_selection.insert("end", "circle")
-        window.shape_selection.insert("end", "high-def oval")
+        #window.shape_selection.insert("end", "highdef circle")
 
         window.export.grid(row=0, column=0, sticky="new")
         window.import_.grid(row=1, column=0, sticky="new")
