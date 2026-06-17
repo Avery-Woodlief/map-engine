@@ -1,3 +1,4 @@
+from tkinter import Canvas
 import math
 import re
 
@@ -38,6 +39,17 @@ class Shape:
         self.geom_attributes = list(type(self).geom_keys)
         self.style_attributes = list(type(self).style_keys)
         self.type = type(self).__name__.lower()
+        self.z_index = None
+        self.grabbed = False
+        self.dx = None
+        self.dy = None
+        self.tag = None
+
+    def collidepoint(self, point):
+        pass
+
+    def draw(self, canvas):
+        pass
 
     def get_a_string(self, keys_):
         string = f"{getattr(self, keys_[0])}"
@@ -60,6 +72,16 @@ class Rectangle (Shape):
         self.width = abs(self.topleft[0] - self.end[0])
         self.height = abs(self.topleft[1] - self.end[1])
 
+    def collidepoint(self, point):
+        print(self)
+        x, y = point
+        if (((self.end[0] >= x) and (self.topleft[0] <=x)) and ((self.end[1] >= y) and (self.topleft[1] <= y))):
+            return True
+        return False
+
+    def draw(self, canvas):
+        canvas.create_rectangle(self.topleft + self.end, fill=self.color, outline=self.outline, tags=(self.tag,))
+
 class Circle (Shape):
     geom_keys = ("center", "end")
 
@@ -68,14 +90,40 @@ class Circle (Shape):
         self.geom_attributes += ["radius"]
         self.radius = nint(math.dist(self.center, self.end))
 
+    def collidepoint(self, point):
+        if nint(math.dist(self.center, point)) <= self.radius:
+            return True
+        return False
+    
+    def draw(self, canvas):
+        cx, cy = self.center
+        radius = self.radius
+        custom_circle_args = (cx - radius, cy - radius,cx + radius,cy + radius)
+        canvas.create_oval(custom_circle_args,fill=self.color, outline=self.outline, tags=(self.tag,))
+
 class Oval (Shape):
     geom_keys = ("center", "end")
     def __init__(self, kw):
         super().__init__(kw)
         self.geom_attributes += ["radius", "width", "height"] # width, height for boundbox if drawing with pygame
-        self.radius = nint(math.dist(self.center, self.end))
-        self.width = self.end[0] - (self.center[0] - self.radius)
-        self.height = self.end[1] - (self.center[1] - self.radius)
+        self.radius = nint(math.dist(self.center, self.end)/2)
+        self.width = self.end[0] - (self.center[0])
+        self.height = self.end[1] - (self.center[1])
+        self.start = self.center
+        self.center = (self.center[0] + nint(self.width/2), self.center[1] + nint(self.height/2))
+
+    def collidepoint(self, point):
+        x, y = point
+        a = nint(self.width/2)
+        b = nint(self.height/2)
+        cx, cy = self.center
+
+        if ((((cx - x)**2)/(a**2)) + (((cy - y)**2)/(b**2)) < 1) or (abs(((((cx - x)**2)/(a**2)) + (((cy - y)**2)/(b**2))) - 1) < 0.01):
+            return True
+        return False
+
+    def draw(self, canvas):
+        canvas.create_oval(self.start + self.end, fill=self.color, outline=self.outline, tags=(self.tag,))
 
 class Line (Shape):
     geom_keys = ("topleft", "end")

@@ -55,6 +55,7 @@ class DrawingBoard:
         self.shapes = []
         self.drawing_args["shapes"] = self.shapes
         self.system = platform.system()
+        self.toggle_move_mode = False
         if (self.system == "Windows"):
             self.file_nav_char = "\\"
         else:
@@ -64,14 +65,16 @@ class DrawingBoard:
         self.window_event_y = 0
         self.bad_file_name_label_text = ""
         self.export_failed = False
+        self.grabbed_shape_id = None
 
         WindowBuilder(self)
         self.drawing_args["canvas"] = self.canvas
 
-        self.bind_commands(self.canvas, {"<Motion>":self.start_dragging_button1,
-                                         "<ButtonPress-1>":self.start_dragging_button1,
-                                         "<ButtonRelease-1>":self.end_dragging_button1})
+        self.bind_commands(self.canvas, {"<Motion>":self.draw_shape_overlay,
+                                         "<ButtonPress-1>":self.draw_shape_overlay,
+                                         "<ButtonRelease-1>":self.finish_drawing_shape})
 
+        self.root.bind_all("<Control-m>", self.flip_move_mode)
 
         self.title_bar.bind("<Motion>", self.move_window_around)
         self.title_bar.bind("<ButtonPress-1>", self.move_window_around)
@@ -79,6 +82,95 @@ class DrawingBoard:
 
 
         self.run()
+
+    def refresh_canvas_display(self):
+        self.canvas.delete("all")
+        for shape in self.shapes:
+            shape.draw(self.canvas)
+        
+
+    def grab_a_shape(self, event):
+        if (len(self.shapes) == 0):
+            return
+        mouse_pos = (event.x, event.y)
+        hits = []
+        for shape in self.shapes:
+            if shape.collidepoint(mouse_pos):
+                print(f"collide with {shape.type}")
+                hits.append(shape)
+        if (len(hits) == 1):
+            hits[0].grabbed = True
+            self.grabbed_shape_id = self.shapes.index(hits[0])
+        elif (len(hits) > 1):
+            top_z_index = max([shape.z_index for shape in hits])
+            for shape in hits:
+                if shape.z_index == top_z_index:
+                    shape.grabbed = True
+                    self.grabbed_shape_id = self.shapes.index(shape)
+                    break
+        else:
+            self.grabbed_shape_id = None
+        if (self.grabbed_shape_id == None):
+            return
+        shape = self.shapes[self.grabbed_shape_id]
+        if (hasattr(shape, "center")):
+            shape.dx = event.x - shape.center[0]
+            shape.dy = event.y - shape.center[1]
+        elif (hasattr(shape, "topleft")):
+            shape.dx = event.x - shape.topleft[0]
+            shape.dy = event.y - shape.topleft[1]
+        return
+
+    def move_grabbed_shape(self, event):
+        if (self.grabbed_shape_id == None):
+            return
+        shape = self.shapes[self.grabbed_shape_id]
+        mouse_x = event.x
+        mouse_y = event.y
+        x = mouse_x - shape.dx
+        y = mouse_y - shape.dy
+        if (shape.type == "circle"):
+            cx = x
+            cy = y
+            shape.center = (cx, cy)
+        elif (shape.type == "oval"):
+            shape.start = (x - nint(shape.width/2), y - nint(shape.height/2))
+            x1, y1 = shape.start
+            shape.center = (x1 + nint(shape.width/2), y1 + nint(shape.height/2))
+            shape.end = (x1 + shape.width, y1 + shape.height)
+        elif (shape.type == "rectangle"):
+            shape.topleft = (x, y)
+            shape.end = (x + shape.width, y + shape.height)
+                
+
+        self.refresh_canvas_display()
+            
+
+    def release_grabbed_shape(self, event):
+        self.grabbed_shape_id = None
+
+    def flip_move_mode(self, event):
+        self.toggle_move_mode = not self.toggle_move_mode
+        #print(self.toggle_move_mode)
+        if self.toggle_move_mode:
+            print(self.toggle_move_mode)
+            self.canvas.unbind("<ButtonPress-1>")
+            self.canvas.unbind("<Motion>")
+            self.canvas.unbind("<ButtonRelease-1>")
+            self.canvas.bind("<ButtonPress-1>", self.grab_a_shape)
+            self.canvas.bind("<Motion>", self.move_grabbed_shape)
+            self.canvas.bind("<ButtonRelease-1>", self.release_grabbed_shape)
+        else:
+            print(self.toggle_move_mode)
+            self.canvas.unbind("<ButtonPress-1>")
+            self.canvas.unbind("<Motion>")
+            self.bind_commands(self.canvas, {"<Motion>":self.draw_shape_overlay,
+                                             "<ButtonPress-1>":self.draw_shape_overlay,
+                                             "<ButtonRelease-1>":self.finish_drawing_shape})
+
+        self.root.update()
+        self.root.update_idletasks()
+        
 
     def terminate_entire_program(self, event=None):
         self.root.attributes("-topmost", False)
@@ -194,6 +286,12 @@ class DrawingBoard:
             g_ = eval("0x" + g) 
             b_ = eval("0x" + b)
             return (r_, g_, b_)
+        def conv_rgb_hex(rgb_color):
+            r, g, b = rgb_color
+            r_ = hex(r)[2:]
+            g_ = hex(g)[2:]
+            b_ = hex(b)[2:]
+            return "#" + r_ + g_ + b_
         exported_shapes = {"screen-size": f"({self.root.winfo_width()}x{self.root.winfo_height()})", "rectangle":{}, "circle":{}, "oval":{}}
         for shape in self.shapes:
             shape.color = conv_hex_rgb(shape.color)
@@ -202,6 +300,9 @@ class DrawingBoard:
             export_line = str(shape)
             export_geometry, export_style = re.split(r"\s*:\s*", export_line, maxsplit=1)
             exported_shapes[shape.type][export_geometry] = export_style
+        
+            shape.color = conv_rgb_hex(shape.color)
+            shape.outline = conv_rgb_hex(shape.outline)
 
         try:
             self.ask_name()
@@ -286,8 +387,10 @@ class DrawingBoard:
             return
     
 
-    def end_dragging_button1(self, event):
+    def finish_drawing_shape(self, event):
 
+        if (not self.current_shape_type):
+            return
         if event.state & state_masks["button1"]:
             self.canvas.delete("overlay")
             mouse_pos = (event.x, event.y)
@@ -296,11 +399,14 @@ class DrawingBoard:
             self.shape_counter[f"{self.current_shape_type}"] += 1
             self.drawing_args["tag"] = f"{self.current_shape_type} {self.shape_counter[f'{self.current_shape_type}']}"
             draw_shape_on_canvas(**(self.drawing_args))
-            self.shapes.append(ShapeFactory.create(self.shape_args["geometry"] | self.shape_args["style"], type_map[self.current_shape_type]))
+            shape = ShapeFactory.create(self.shape_args["geometry"] | self.shape_args["style"], type_map[self.current_shape_type])
+            shape.z_index = len(self.shapes)
+            shape.tag = self.drawing_args["tag"]
+            self.shapes.append(shape)
             
                 
 
-    def start_dragging_button1(self, event):
+    def draw_shape_overlay(self, event):
         if (event.type.name == "ButtonPress"): # if ButtonPress event, that is no motion happening just button press
             mouse_pos = (event.x, event.y)
             self.shape_args["geometry"]["topleft"] = mouse_pos
@@ -323,6 +429,7 @@ class DrawingBoard:
         widget.destroy()
 
     def run(self):
+        
         self.root.update_idletasks()
         self.root.attributes("-topmost", True)
         self.root.lift()
