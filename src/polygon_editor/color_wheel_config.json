@@ -1,30 +1,30 @@
 {
     "pallete": {
         "frame": {
-            "x": "739",
-            "y": "391",
-            "width": "210",
-            "height": "227"
+            "x": "66",
+            "y": "532",
+            "width": "160",
+            "height": "177"
         },
         "canvas": {
             "x": "0",
             "y": "0",
-            "width": "212",
-            "height": "229"
+            "width": "226",
+            "height": "243"
         }
     },
     "mixture": {
         "frame": {
-            "x": "103",
-            "y": "27",
-            "width": "1160",
-            "height": "1177"
+            "x": "664",
+            "y": "514",
+            "width": "145",
+            "height": "162"
         },
         "canvas": {
             "x": "0",
             "y": "0",
-            "width": "1162",
-            "height": "1179"
+            "width": "147",
+            "height": "164"
         }
     }
 }

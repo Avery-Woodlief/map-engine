@@ -28,6 +28,7 @@ class Interface:
             raise ValueError(f"bad init interface height type, got {type(init_height)}")
         self.root = Tk()
         self.root.geometry(f"{init_width}x{init_height}")
+        self.root["bg"]="black"
         self.root.title("Polygon Editor")
         self.root.columnconfigure(0)
         self.root.rowconfigure(0, weight=1)
@@ -51,8 +52,8 @@ class Interface:
         self.current_child = self.enabled_children[0]
         self.current_child.focus_force()
 
-        print(self.enabled_children)
-        print(self.disabled_children)
+        #print(self.enabled_children)
+        #print(self.disabled_children)
 
         self.root.mainloop()
 
@@ -101,7 +102,7 @@ class Interface:
         
     def switch_windows(self, event):
         self.current_child = self.enabled_children[(self.enabled_children.index(self.current_child) + 1) % len(self.enabled_children)]
-        print(self.current_child)    
+        print(self.current_child)
         if (str(self.current_child) in (".pallete_frame", ".mixture_frame")):
             print(self.current_child.winfo_children())
             self.color_wheel.selected_frame = self.current_child

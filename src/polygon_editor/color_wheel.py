@@ -91,16 +91,23 @@ class ColorWheel:
         self.config = ColorWheelConfig()
 
         self.parent = parent
-        self.pallete_frame = Frame(self.parent, width=220, height=237, name="pallete_frame")
-        self.pallete_frame.place(x=739, y=391)
+        self.pallete_frame = Frame(self.parent, width=self.config["pallete"]["frame"]["width"], 
+                                                height=self.config["pallete"]["frame"]["height"], name="pallete_frame")
+        self.pallete_frame.place(x=self.config["pallete"]["frame"]["x"], 
+                                 y=self.config["pallete"]["frame"]["y"])
+
         self.pallete_frame.update_idletasks()
-        self.pallete_canvas = Canvas(self.pallete_frame, width=222, height=239, name="pallete_canvas")
+        self.pallete_canvas = Canvas(self.pallete_frame, width=self.config["pallete"]["canvas"]["width"], 
+                                                         height=self.config["pallete"]["canvas"]["height"], name="pallete_canvas")
         self.pallete_canvas.update_idletasks()
 
-        self.mixture_frame = Frame(self.parent, width=125, height=142, name="mixture_frame")
-        self.mixture_frame.place(x=780, y=659)
+        self.mixture_frame = Frame(self.parent, width=self.config["mixture"]["frame"]["width"], 
+                                                height=self.config["mixture"]["frame"]["height"], name="mixture_frame")
+        self.mixture_frame.place(x=self.config["mixture"]["frame"]["x"], 
+                                 y=self.config["mixture"]["frame"]["y"])
         self.mixture_frame.update_idletasks()      
-        self.mixture_canvas = Canvas(self.mixture_frame, width=127, height=144, name="mixture_canvas")
+        self.mixture_canvas = Canvas(self.mixture_frame, width=self.config["mixture"]["canvas"]["width"], 
+                                                         height=self.config["mixture"]["canvas"]["height"], name="mixture_canvas")
         self.mixture_canvas.update_idletasks()
 
 
@@ -254,8 +261,26 @@ class ColorWheel:
     def moving_widget(self, event):
         if (self.selected_frame == None):
             return
+            
         if (event.type.name == "Motion" and bool(re.search(r"state=Shift\|Button3", str(event)))):
-            self.selected_frame.place(x=event.x, y=event.y)
+            x_ = event.x
+            y_ = event.y
+            #self.selected_canvas.place(x=x_, y=y_)
+            self.selected_frame.place(x=x_, y=y_)
+
+            
+            if (self.selected_frame == self.pallete_frame):
+                self.config.branch = "pallete"
+                self.config.reset_current()
+                self.config["pallete"]
+            elif (self.selected_frame == self.mixture_frame):
+                self.config.branch = "mixture"
+                self.config.reset_current()
+                self.config["mixture"]
+            self.update_config(self.selected_frame, self.selected_canvas)
+            self.config.update_colorwheel_config_part()
+            
+            
 
     def dist_from_white(self, hex_color):
         return math.dist(self.hex_to_rgb(hex_color), self.hex_to_rgb('#ffffff'))
