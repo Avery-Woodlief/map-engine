@@ -1,7 +1,9 @@
-from vertex_drawer import *
+import re
 from tkinter.colorchooser import Chooser
 from tkinter.dialog import Dialog
 from color_wheel import *
+from vertex_drawer import *
+
 
 class SimpleButton(Button):
     def __init__(self, parent, text_, command_):
@@ -26,31 +28,57 @@ class Interface:
             raise ValueError(f"bad init interface height type, got {type(init_height)}")
         self.root = Tk()
         self.root.geometry(f"{init_width}x{init_height}")
+        self.root.title("Polygon Editor")
         self.root.columnconfigure(0)
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=1)
         self.root.update_idletasks()
-        ColorWheel(self.root)
+        self.color_wheel = ColorWheel(self.root)
         self.graph = Graph(nint(init_width - 50), nint(init_height/2), self.root)
         self.graph.root.update_idletasks()
 
-        Button(self.root, text="+", command=self.add_poly).grid(column=1, row=0, sticky="wns")#.place(x=self.graph.winfo_x()-50, y=self.graph.winfo_y())
+        self.draw_add_button()
+        self.draw_polygon_buttons()
         
+
+        self.root.bind("<KeyPress-Tab>", self.switch_windows)
+        self.root.bind("~", self.check_for_refresh, add="+") #XXX restarts polygon editor
+        self.root.bind("<Escape>", lambda e: self.root.quit())
+
+        self.children = self.root.winfo_children()
+        self.enabled_children = [child for child in self.children if not bool(re.search(r"button", str(child)))]
+        self.disabled_children = [child for child in self.children if bool(re.search(r"button", str(child)))]
+        self.current_child = self.enabled_children[0]
+        self.current_child.focus_force()
+
+        print(self.enabled_children)
+        print(self.disabled_children)
+
+        self.root.mainloop()
+
+    def check_for_refresh(self,event=None):
+        for k in self.polygon_buttons.keys():
+            self.polygon_buttons[k].destroy()
+        self.draw_polygon_buttons()
+        self.root.update()
+        
+
+    def draw_add_button(self):
+        Button(self.root, text="+", command=self.add_poly, takefocus=0).grid(column=1, row=0, sticky="wns")
+
+    def draw_polygon_buttons(self):
+
         self.polygon_buttons = {i + 1 : "" for i in range(len(self.graph.polygons))}
 
         for i in range(len(self.graph.polygons)):
             polygon_number = i + 1
-            self.polygon_buttons[polygon_number] = Button(self.root, text=f"{polygon_number}", command=lambda n=polygon_number: self.select_polygon(n),
-                                                          width=2) 
+            self.polygon_buttons[polygon_number] = Button(self.root, 
+                                                          text=f"{polygon_number}", 
+                                                          command=lambda n=polygon_number: self.select_polygon(n), 
+                                                          width=2,
+                                                          takefocus=0) 
             self.polygon_buttons[polygon_number].place(x=self.graph.winfo_x() + 50 + i*(50), y=self.graph.winfo_y() + self.graph.winfo_height())
             self.polygon_buttons[polygon_number].bind("<Enter>", lambda event, n=polygon_number: self.polygon_preview(event,n))
-
-        #Chooser().pack(self.root)
-        
-
-        self.root.bind("<KeyPress-Tab>", self.switch_windows)
-
-        self.root.mainloop()
 
 
     def polygon_preview(self, event, num):
@@ -72,15 +100,13 @@ class Interface:
         self.polygon_buttons[index + 1].bind("<Enter>", lambda event, n=(index + 1): self.polygon_preview(event,n))
         
     def switch_windows(self, event):
-        #print(self.graph.root.focus_get())
-        #print(self.graph.path)
-        if (self.graph.has_focus):
-            self.root.focus_set()
-            self.graph.has_focus = False
-        else:
-            widget = self.root.nametowidget(self.graph.path)
-            widget.focus_set()
-            self.graph.has_focus = True
-            print(widget.focus_get())
+        self.current_child = self.enabled_children[(self.enabled_children.index(self.current_child) + 1) % len(self.enabled_children)]
+        print(self.current_child)    
+        if (str(self.current_child) in (".pallete_frame", ".mixture_frame")):
+            print(self.current_child.winfo_children())
+            self.color_wheel.selected_frame = self.current_child
+            self.color_wheel.selected_canvas = self.current_child.winfo_children()[0]
+
+        return
 
 ui = Interface(1000, 800)

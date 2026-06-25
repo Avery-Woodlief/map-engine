@@ -27,35 +27,84 @@ class ColorWheelConfig:
         self.mixture = {"frame" : {"x" : -1, "y":-1, "width":-1, "height":-1},
                         "canvas" : {"x" : -1, "y":-1, "width":-1, "height":-1}}
 
+
+        self.branch = None
         self.current = None
+        self.keys = ("pallete", "mixture", "frame", "canvas", "width", "height", "x", "y")
 
         self.colorwheel_config = {"pallete" : self.pallete,
                                   "mixture" : self.mixture}
+
+        self.load_in_presets()
+
+
+    def reset_current(self):
+        self.current = self.colorwheel_config[self.branch]
+
+    def __getitem__(self, key):
+        if (key not in self.keys):
+            raise KeyError(f"{key} not one of {self.keys}")
+
+        if (key in ("pallete", "mixture")):
+            self.current = self.colorwheel_config[key]   
+            self.branch = key
+            return self.current
+
+        elif (((self.current == self.pallete) or (self.current == self.mixture)) and (self.current != None) and (key in ("frame", "canvas"))):
+            self.current = self.current[key]
+            return self.current
+
+        elif (key in ("x", "y", "width", "height") and (self.current != None)):
+            self.current = self.current[key]
+            return self.current
+
+        
+
+    def __setitem__(self, key, value):
+        if (not isinstance(value, (int, str))):
+            raise ValueError(f"{self} only takes values of type int or str, got one of type {type(value)}")
+        if (key in ("pallete", "mixture", "frame", "canvas")):
+            raise KeyError(f"key {key} is not editable in {self}")
+
+        if ((self.current != self.pallete["frame"]) and (self.current != self.pallete["canvas"])) and ((self.current != self.mixture["frame"]) and (self.current != self.mixture["canvas"])):
+            raise ValueError("self.current must be set to either self.pallete(['frame'] or ['canvas']) or self.mixture(['frame'] or ['canvas'])")
+
+        self.current[key] = value
+        
 
     def update_colorwheel_config_part(self):
         with open("color_wheel_config.json", "w") as file:
             json.dump(self.colorwheel_config, file, indent=4)
         file.close()
 
+    def load_in_presets(self):
+        with open("color_wheel_config.json", "r") as file:
+            self.colorwheel_config = json.load(file)
+            self.pallete = self.colorwheel_config["pallete"]
+            self.mixture = self.colorwheel_config["mixture"]
+        file.close()
+
 class ColorWheel:
 
     def __init__(self, parent):
 
+        self.config = ColorWheelConfig()
+
         self.parent = parent
-        self.pallete_frame = Frame(self.parent, width=220, height=237)
+        self.pallete_frame = Frame(self.parent, width=220, height=237, name="pallete_frame")
         self.pallete_frame.place(x=739, y=391)
         self.pallete_frame.update_idletasks()
-        self.pallete_canvas = Canvas(self.pallete_frame, width=222, height=239)
+        self.pallete_canvas = Canvas(self.pallete_frame, width=222, height=239, name="pallete_canvas")
         self.pallete_canvas.update_idletasks()
 
-        self.mixture_frame = Frame(self.parent, width=125, height=142)
+        self.mixture_frame = Frame(self.parent, width=125, height=142, name="mixture_frame")
         self.mixture_frame.place(x=780, y=659)
         self.mixture_frame.update_idletasks()      
-        self.mixture_canvas = Canvas(self.mixture_frame, width=127, height=144)
+        self.mixture_canvas = Canvas(self.mixture_frame, width=127, height=144, name="mixture_canvas")
         self.mixture_canvas.update_idletasks()
 
 
-        self.config = ColorWheelConfig()
+        
         
 
         self.pallete_radius = nint(self.pallete_frame["width"]/2) - 5
@@ -108,37 +157,35 @@ class ColorWheel:
         self.generate_colors()
         
         self.draw_pallete()
-        self.parent.bind("<ButtonPress-3>", self.select_color_anchor, add="+")
-        self.parent.bind("<ButtonPress-1>", self.color_picker, add="+")
-        self.parent.bind("<Motion>", self.color_picker, add="+")
-        self.parent.bind("<KeyPress>", self.color_operator, add="+")
-        self.parent.bind("<Motion>", self.inspect_color, add="+")
+        self.color_anchor_bind_id_B3 = self.parent.bind("<ButtonPress-3>", self.select_color_anchor, add="+")
+        self.color_picker_bind_id_B1 = self.parent.bind("<ButtonPress-1>", self.color_picker, add="+")
+        self.color_picker_bind_id_Motion = self.parent.bind("<Motion>", self.color_picker, add="+")
+        self.color_operator_bind_id_KP = self.parent.bind("<KeyPress>", self.color_operator, add="+")
+        self.inspect_color_bind_id_Motion = self.parent.bind("<Motion>", self.inspect_color, add="+")
 
 
-        self.parent.bind("<Shift-ButtonPress-2>", self.moving_widget, add="+")
-        self.parent.bind("<KeyPress>", self.canvas_selector, add="+")
-        self.parent.bind("<Button-4>", self.mousewheel, add="+")
-        self.parent.bind("<Button-5>", self.mousewheel, add="+")
+        self.moving_widget_bind_id_Motion = self.parent.bind("<Motion>", self.moving_widget, add="+")
+        self.mousewheel_bind_id_B4 = self.parent.bind("<Button-4>", self.mousewheel, add="+")
+        self.mousewheel_bind_id_B5 = self.parent.bind("<Button-5>", self.mousewheel, add="+")
         #self.parent.bind("<MouseWheel>", self.mousewheel)
 
     def update_config(self, frame, canvas):
-        self.config.current["frame"]["x"]=str(frame.winfo_x())
-        self.config.current["frame"]["y"]=str(frame.winfo_y())
-        self.config.current["frame"]["width"]=str(frame.winfo_width())
-        self.config.current["frame"]["height"]=str(frame.winfo_height())
 
-        self.config.current["canvas"]["x"]=str(canvas.winfo_x())
-        self.config.current["canvas"]["y"]=str(canvas.winfo_y())
-        self.config.current["canvas"]["width"]=str(canvas.winfo_width())
-        self.config.current["canvas"]["height"]=str(canvas.winfo_height())
+        self.config["frame"]
+        self.config["x"] = str(frame.winfo_x())
+        self.config["y"] = str(frame.winfo_y())
+        self.config["width"] = str(frame.winfo_width())
+        self.config["height"] = str(frame.winfo_height())
 
-    def canvas_selector(self, event):
-        if (event.char == "<"):
-            self.selected_canvas = self.pallete_canvas
-            self.selected_frame = self.pallete_frame
-        elif (event.char == ">"):
-            self.selected_canvas = self.mixture_canvas
-            self.selected_frame = self.mixture_frame
+        self.config.reset_current()
+
+        self.config["canvas"]
+        self.config["x"] = str(canvas.winfo_x())
+        self.config["y"] = str(canvas.winfo_y())
+        self.config["width"] = str(canvas.winfo_width())
+        self.config["height"] = str(canvas.winfo_height())
+
+        self.config.reset_current()
 
     def find_closest(self, event):
         if (event.widget == self.pallete_canvas):
@@ -164,20 +211,19 @@ class ColorWheel:
 
         if (event.num in (4, 5)):
             self.selected_canvas.config(width=self.selected_frame["width"], height=self.selected_frame["height"])
-            #self.selected_canvas.config(x=self.selected_frame.winfo_x(), y=self.selected_frame.winfo_y())
             self.selected_canvas.update_idletasks()
             self.selected_frame.update_idletasks()
 
         if (self.selected_frame == self.pallete_frame):
-            self.config.current = self.config.pallete
+            self.config["pallete"]
         elif (self.selected_frame == self.mixture_frame):
-            self.config.current = self.config.mixture
+            self.config["mixture"]
 
         
 
         if (event.num in (4, 5)):
             self.update_config(self.selected_frame, self.selected_canvas)
-            print(self.config.colorwheel_config)
+            #print(self.config.colorwheel_config)
             self.config.update_colorwheel_config_part()
 
         if (event.num in (4, 5) and self.selected_canvas == self.pallete_canvas):
@@ -208,7 +254,8 @@ class ColorWheel:
     def moving_widget(self, event):
         if (self.selected_frame == None):
             return
-        self.selected_frame.place(x=event.x, y=event.y)
+        if (event.type.name == "Motion" and bool(re.search(r"state=Shift\|Button3", str(event)))):
+            self.selected_frame.place(x=event.x, y=event.y)
 
     def dist_from_white(self, hex_color):
         return math.dist(self.hex_to_rgb(hex_color), self.hex_to_rgb('#ffffff'))
@@ -293,12 +340,15 @@ class ColorWheel:
         return ((event.x - self.mixture_center[0])**2) + ((event.y - self.mixture_center[1])**2) <= (self.mixture_radius**2)
 
     def color_picker(self, event):
-        print(event.widget)
+        # check to avoid conflicts with other binds
+        #print(hex(event.state))
+        #print(hex(0x400 | 0x1))
+        
         cx = event.x
         cy = event.y
 
         if (event.widget == self.pallete_canvas):#".!frame.!canvas"): # pallete canvas
-            print("in pallete canvas")
+            #print("in pallete canvas")
             if (self.mouse_in_pallete(event)):
                 self.mixture_canvas.config(cursor="none")
                 self.mixture_canvas.delete("cursor")
@@ -312,7 +362,7 @@ class ColorWheel:
                 self.pallete_canvas.config(cursor="arrow")
 
         elif (event.widget == self.mixture_canvas):#".!frame2.!canvas"):
-            print("in mixture canvas")
+            #print("in mixture canvas")
             if (self.mouse_in_mixture(event)):
                 self.pallete_canvas.config(cursor="none")
                 self.pallete_canvas.delete("cursor")
@@ -328,7 +378,7 @@ class ColorWheel:
             self.pallete_canvas.delete("cursor")
             self.mixture_canvas.config(cursor="none")
             self.mixture_canvas.delete("cursor")
-            print("in root")
+            #print("in root")
         
         if ((event.type.name == "Motion" and (event.state & state_masks["button1"])) or (event.type.name == "ButtonPress")):
             
@@ -715,12 +765,3 @@ class ColorWheel:
             0.7152 * g +
             0.0722 * b
         )
-
-'''
-root = Tk()
-root.geometry("800x800")
-root.update_idletasks()
-ColorWheel(root)
-
-root.mainloop()
-'''

@@ -290,17 +290,15 @@ class Graph:
         self.root = Frame(self.parent, width=init_width, height=init_height, takefocus=True)
         
         self.path = str(self.root)
-        self.root.grid(column=1, row=0, sticky="nwe")#.pack(side="right")#side="top", ipadx=100, pady=100
+        self.root.grid(column=1, row=0, sticky="nwe")
         self.root.focus_set()
         self.has_focus = True
-        #self.root = Tk()
-        
-        #self.root.geometry(f"{init_width}x{init_height}")
+
         self.root.update_idletasks()
         
-        #self.graph_points = []
         self.selected_polygon = 0
-        self.polygons = [Polygon(self, "black", f"polygon - {i + 1}") for i in range(9)]
+        self.init_polygons = [Polygon(self, "black", f"polygon - {i + 1}") for i in range(9)]
+        self.polygons = self.init_polygons
         
         self.grid = Grid(self)
         self.grid.pack({"fill":"both", "expand":True})
@@ -319,30 +317,26 @@ class Graph:
         self.show_vertices = True
 
         self.root.bind("<Configure>", self.grid.redraw)
-        self.root.bind("<Escape>", self.end_program)
+        #self.root.bind("<Escape>", self.end_program)
+        self.root.bind("~", self.restart_program) #XXX restarts polygon editor
         self.root.bind("v", self.toggle_vertices)
         self.root.bind("V", self.toggle_vertices)
         #self.root.bind("<Motion>", self.clamp_cursor)
         self.grid.canvas.bind("<Motion>", self.clamp_cursor)
 
         # Left click and drag pans the view.
-        #self.root.bind("<ButtonPress-1>", self.start_pan)
-        #self.root.bind("<B1-Motion>", self.pan)
+
         self.grid.canvas.bind("<ButtonPress-1>", self.start_pan)
         self.grid.canvas.bind("<B1-Motion>", self.pan)
         self.grid.canvas.bind("<ButtonRelease-1>", self.end_pan)
 
         # Right click places points now, because Button-1 is used for panning.
-        #self.root.bind("<ButtonPress-3>", self.place_point)
-        #self.root.bind("<B3-Motion>", self.place_point)
+
         self.grid.canvas.bind("<ButtonPress-3>", self.place_point)
         self.grid.canvas.bind("<B3-Motion>", self.place_point)
         # Mousewheel zooms too.
         # <MouseWheel> works on Windows/macOS.
         # <Button-4>/<Button-5> work on many Linux Tk builds.
-        #self.root.bind("<MouseWheel>", self.mousewheel_zoom)
-        #self.root.bind("<Button-4>", self.mousewheel_zoom)
-        #self.root.bind("<Button-5>", self.mousewheel_zoom)
 
         self.grid.canvas.bind("<MouseWheel>", self.mousewheel_zoom)
         self.grid.canvas.bind("<Button-4>", self.mousewheel_zoom)
@@ -358,6 +352,13 @@ class Graph:
         
         
         #self.root.mainloop()
+
+    def restart_program(self, event=None):
+        print("restarting program...")
+        self.polygons = [Polygon(self, "black", f"polygon - {i + 1}") for i in range(9)]
+        self.selected_polygon = 0
+        self.grid.redraw(event)
+        
 
     def undo_prev_vertex(self, event):
         print("undo")

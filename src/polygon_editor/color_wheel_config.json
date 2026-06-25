@@ -3,28 +3,28 @@
         "frame": {
             "x": "739",
             "y": "391",
-            "width": "255",
-            "height": "272"
+            "width": "210",
+            "height": "227"
         },
         "canvas": {
             "x": "0",
             "y": "0",
-            "width": "257",
-            "height": "274"
+            "width": "212",
+            "height": "229"
         }
     },
     "mixture": {
         "frame": {
-            "x": -1,
-            "y": -1,
-            "width": -1,
-            "height": -1
+            "x": "103",
+            "y": "27",
+            "width": "1160",
+            "height": "1177"
         },
         "canvas": {
-            "x": -1,
-            "y": -1,
-            "width": -1,
-            "height": -1
+            "x": "0",
+            "y": "0",
+            "width": "1162",
+            "height": "1179"
         }
     }
 }
