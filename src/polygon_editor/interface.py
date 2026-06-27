@@ -28,7 +28,7 @@ class Interface:
             raise ValueError(f"bad init interface height type, got {type(init_height)}")
         self.root = Tk()
         self.root.geometry(f"{init_width}x{init_height}")
-        self.root["bg"]="black"
+        #self.root["bg"]="black"
         self.root.title("Polygon Editor")
         self.root.columnconfigure(0)
         self.root.rowconfigure(0, weight=1)
